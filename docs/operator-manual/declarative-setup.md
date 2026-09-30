@@ -1174,6 +1174,40 @@ stringData:
 
 Note that you must enable Workload Identity on your GKE cluster, create GCP service account with appropriate IAM role and bind it to Kubernetes service account for argocd-application-controller and argocd-server (showing Pod logs on UI). See [Use Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) and [Authenticating to the Kubernetes API server](https://cloud.google.com/kubernetes-engine/docs/how-to/api-server-authentication).
 
+### Yandex Cloud Managed Kubernetes
+
+Use `argocd-k8s-auth yc` to obtain a Yandex Cloud IAM token for a Managed Kubernetes cluster. By default, the command gets a token from the Compute metadata service when it is reachable and the underlying Compute instance has an attached service account. To use a service account authorized key instead, mount its JSON key file into the Argo CD pods and set `YC_SERVICE_ACCOUNT_KEY_FILE` to its path in the cluster Secret:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mycluster-secret
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+type: Opaque
+stringData:
+  name: mycluster.example.com
+  server: https://mycluster.example.com
+  config: |
+    {
+      "execProviderConfig": {
+        "command": "argocd-k8s-auth",
+        "args": ["yc"],
+        "apiVersion": "client.authentication.k8s.io/v1beta1",
+        "env": {
+          "YC_SERVICE_ACCOUNT_KEY_FILE": "/etc/yc/authorized-key.json"
+        }
+      },
+      "tlsClientConfig": {
+        "insecure": false,
+        "caData": "<base64 encoded certificate>"
+      }
+    }
+```
+
+The service account must have the necessary Yandex Cloud access roles and Kubernetes RBAC permissions. See [getting an IAM token for a service account](https://yandex.cloud/en/docs/iam/operations/iam-token/create-for-sa) and [access management in Managed Kubernetes](https://yandex.cloud/en/docs/managed-kubernetes/security/).
+
 ### AKS
 
 Azure cluster secret example using argocd-k8s-auth and [kubelogin](https://github.com/Azure/kubelogin).  The option *azure* to the argocd-k8s-auth execProviderConfig encapsulates the *get-token* command for kubelogin.  Depending upon which authentication flow is desired (devicecode, spn, ropc, msi, azurecli, workloadidentity), set the environment variable AAD_LOGIN_METHOD with this value.  Set other appropriate environment variables depending upon which authentication flow is desired.

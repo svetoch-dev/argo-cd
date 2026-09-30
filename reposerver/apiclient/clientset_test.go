@@ -232,9 +232,13 @@ func TestNewConnection_ErrorWhenRotatedCertIsInvalid(t *testing.T) {
 	conn, err := apiclient.NewConnection("example.com:443", 10, &tlsConfig)
 	require.NoError(t, err)
 	assert.NotNil(t, conn)
+	certInfo, err := os.Stat(tempCertFile)
+	require.NoError(t, err)
 
 	require.NoError(t, os.WriteFile(tempCertFile, []byte("not a valid certificate"), 0o600))
 	require.NoError(t, os.WriteFile(tempKeyFile, []byte("not a valid key"), 0o600))
+	rotatedMTime := certInfo.ModTime().Add(time.Second)
+	require.NoError(t, os.Chtimes(tempCertFile, rotatedMTime, rotatedMTime))
 
 	// Second call: mtime changed → reload attempted → parse fails → error returned.
 	// The stale (valid) cached cert must NOT be silently served.

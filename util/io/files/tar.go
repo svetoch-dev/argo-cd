@@ -205,6 +205,12 @@ func untar(dstPath string, r io.Reader, preserveFileMode bool) error {
 				f.Close()
 				return fmt.Errorf("error writing tgz file: %w", err)
 			}
+			if preserveFileMode {
+				if err := f.Chmod(mode); err != nil {
+					f.Close()
+					return fmt.Errorf("error setting file mode for %q: %w", header.Name, err)
+				}
+			}
 			f.Close()
 		}
 	}
